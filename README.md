@@ -1,29 +1,15 @@
-    Padvish Killer
-    Coded By Shahriyar Jalayeri
-    twitter.com/ponez
-	
-							 .="=.
-						   _/.-.-.\_     _
-						  ( ( o o ) )    ))
-						   |/  "  \|    //
-		   .-------.        \'---'/    //
-		  _|~~ ~~  |_       /`"""`\\  ((
-		=(_|_______|_)=    / /_,_\ \\  \\
-		  |:::::::::|      \_\\_'__/ \  ))
-		  |:::::::[]|       /`  /`~\  |//
-		  |o=======.|      /   /    \  /
-	 jgs  `"""""""""`  ,--`,--'\/\    /
-						'-- "--'  '--'
-	
-	UPDATE : The race-condition flaw is patched in the new version of Padvish EPS. I found and tested this flaw
-	         on Padvish EPS ver 1.2.38.1083, but seems somehow they found it (just one week after I found it,
-			 and the only change is in this functions! are they stealing something from my VM ? ;) 
-			 upgrade to 1.4.31.1143 version and you are safe from race-condition flaw!
-			 - Shahriyar, 5/29/2014
-	
-    Padvish's driver apsp.sys hooks ZwOpenProcess and ZwOpenThread to protects its process, there is 
-	race-condition flaw with both of this hook functions. for the sake of simplicity I only describe ZwOpenProcess.
-    so lets examine the HookedZwOpenProcess :
+### Padvish Killer ( race condition in hooked ZwOpenProcess/ZwOpenThread )
+
+
+*UPDATE : The race-condition flaw is patched in the new version of Padvish EPS. I found and tested this flaw
+         on Padvish EPS ver 1.2.38.1083, but seems somehow they found it (just one week after I found it,
+		 and the only change is in this functions! are they stealing something from my VM ? ;) 
+		 upgrade to 1.4.31.1143 version and you are safe from race-condition flaw!
+		 - Shahriyar, 5/29/2014*
+
+Padvish's driver apsp.sys hooks ZwOpenProcess and ZwOpenThread to protects its process, there is 
+race-condition flaw with both of this hook functions. for the sake of simplicity I only describe ZwOpenProcess.
+so lets examine the HookedZwOpenProcess :
 
         .text:00012EF9                 mov     [ebp+ms_exc.disabled], edi
         .text:00012EFC                 push    1               ; Alignment
@@ -38,8 +24,8 @@
         .text:00012F15                 push    esi             ; _DWORD
         .text:00012F16                 call    OriginalZwOpenProcess
 
-    It starts by calling the original ZwOpenProcess and passing all the user-provided arguments unmodified.
-    this call is done for obtaining a handle to the target process. then we have :
+It starts by calling the original ZwOpenProcess and passing all the user-provided arguments unmodified.
+this call is done for obtaining a handle to the target process. then we have :
 
         .text:00012F1C                 cmp     eax, edi
         .text:00012F1E                 jl      short loc_12F91
@@ -76,15 +62,15 @@
         .text:00012F74                 cmp     eax, 0FFFFFFFFh
         .text:00012F77                 jnz     short loc_12F80
 
-    The above code gets a handle to the target process's EPROCCESS structure and then passes it to the PsGetProcessId
-    for getting the target process's ID, then it compares and validate it against some pre-filed list by calling 
-    the sub_11E82 , sub_12936 and sub_12986. if the validation process fails, function will changes the DesiredAccess
-    argument to PROCESS_QUERY_INFORMATION (0x400) :
+The above code gets a handle to the target process's EPROCCESS structure and then passes it to the PsGetProcessId
+for getting the target process's ID, then it compares and validate it against some pre-filed list by calling 
+the sub_11E82 , sub_12936 and sub_12986. if the validation process fails, function will changes the DesiredAccess
+argument to PROCESS_QUERY_INFORMATION (0x400) :
 
         .text:00012F79                 mov     [ebp+DesiredAccess], 400h
 
-    then it close the handle obtained by calling the OriginalZwOpenProcess and then return by calling the 
-    OriginalZwOpenProcess again but with modified DesiredAccess (in case of failed validation ):
+then it close the handle obtained by calling the OriginalZwOpenProcess and then return by calling the 
+OriginalZwOpenProcess again but with modified DesiredAccess (in case of failed validation ):
 
         .text:00012F80                 mov     ecx, [ebp+Object] ; Object
         .text:00012F83                 call    ds:ObfDereferenceObject
@@ -113,23 +99,24 @@
         .text:00012FC2                 retn    10h
 
     
-    The race-condition occur because apsp.sys first calls the original ZwOpenPrcess by passing the user-mode 
-    ProcessHandle address with unmodified DesiredAccess, then its starts to validate this action. I a normal
-	situation we can obtain a limited handle to any process ( even protected one ) by calling the ZwOpenProcess, 
-	but we don't have the handle value before ZwOpenProcess finished its works and returned.
-	But in this situation the HookedZwOpenProcess calls original ZwOpenProcess two times, first time with unmodified 
-	arguments for getting EPROCESS Object and respectfully target's process ID and second time after the validation
-	process has finished (with modified DesiredAccess in case of validation failure).
-	
-	So we can call HookedZwOpenProcess (by calling OpenProcess) and passing the PROCESS_ALL_ACCESS as DesiredAccess
-	argument, this will cause the HookedZwOpenProcess call the original ZwOpenProcess for the first time without
-	modifing any argument (for getting a valid handle to the target process). now we have a valid
-	handle with PROCESS_ALL_ACCESS privilege, but for using it we most intrupt the HookedZwOpenProcess thread 
-	execution and force the kernel to schedule another thread which uses this handle for terminating the process.
-	
-	For doing this I created two separated threads, one which infinitely loops for opening a PROCESS_ALL_ACCESS 
-	handle to the target process and one which infinitely loops for terminating the process by returned handle.
-    for making the scenario more possible we can set priority class of the OpenProcess threads to the 
-    BELOW_NORMAL_PRIORITY_CLASS and TerminateProcess threads to normal or above normal.
-	
-	- Shahriyar, 5/10/2014
+The race-condition occur because apsp.sys first calls the original ZwOpenPrcess by passing the user-mode 
+ProcessHandle address with unmodified DesiredAccess, then its starts to validate this action. I a normal
+situation we can obtain a limited handle to any process ( even protected one ) by calling the ZwOpenProcess, 
+but we don't have the handle value before ZwOpenProcess finished its works and returned.
+But in this situation the HookedZwOpenProcess calls original ZwOpenProcess two times, first time with unmodified 
+arguments for getting EPROCESS Object and respectfully target's process ID and second time after the validation
+process has finished (with modified DesiredAccess in case of validation failure).
+
+So we can call HookedZwOpenProcess (by calling OpenProcess) and passing the PROCESS_ALL_ACCESS as DesiredAccess
+argument, this will cause the HookedZwOpenProcess call the original ZwOpenProcess for the first time without
+modifing any argument (for getting a valid handle to the target process). now we have a valid
+handle with PROCESS_ALL_ACCESS privilege, but for using it we most intrupt the HookedZwOpenProcess thread 
+execution and force the kernel to schedule another thread which uses this handle for terminating the process.
+
+For doing this I created two separated threads, one which infinitely loops for opening a PROCESS_ALL_ACCESS 
+handle to the target process and one which infinitely loops for terminating the process by returned handle.
+for making the scenario more possible we can set priority class of the OpenProcess threads to the 
+BELOW_NORMAL_PRIORITY_CLASS and TerminateProcess threads to normal or above normal.
+
+*Shahriyar, 5/10/2014  
+twitter.com/ponez*
