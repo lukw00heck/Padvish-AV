@@ -1,4 +1,4 @@
-### Padvish Killer ( race condition in hooked ZwOpenProcess/ZwOpenThread )
+### Padvish Killer ( rc flaw in hooked ZwOpenProcess/ZwOpenThread )
 
 
 *UPDATE : The race-condition flaw is patched in the new version of Padvish EPS. I found and tested this flaw
