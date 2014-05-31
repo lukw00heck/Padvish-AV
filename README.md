@@ -1,7 +1,7 @@
 ### Padvish Killer ( rc flaw in hooked ZwOpenProcess/ZwOpenThread )
 
 
-*UPDATE : The race-condition flaw is patched in the new version of Padvish EPS. I found and tested this flaw
+*UPDATE : The race-condition flaw is patched in the new version of Padvish EPS. I found and tested it
          on Padvish EPS ver 1.2.38.1083, but seems somehow they found it (just one week after I found it,
 		 and the only change is in this functions! are they stealing something from my VM ? ;) 
 		 upgrade to 1.4.31.1143 version and you are safe from race-condition flaw!
