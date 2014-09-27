@@ -121,8 +121,7 @@ handle to the target process and one which infinitely loops for terminating the 
 for making the scenario more possible we can set priority class of the OpenProcess threads to the 
 BELOW_NORMAL_PRIORITY_CLASS and TerminateProcess threads to normal or above normal.
 
-*Shahriyar, 5/10/2014  
-twitter.com/ponez*
+*Shahriyar, 5/10/2014* 
 
 ##### 2 : NtRenameKey flaw
 There is another flaw in dealing with "Image File Execution Options" registry key. Padvish protects this key 
@@ -132,4 +131,4 @@ inside this key. we can overcome this limitation by creating a random key in "Im
 and setting desired values inside ( e.g "debugger" ) and then renaming it with NtRenameKey to "APCcSvc.exe". 
 this wont let Podvish service starts again after termination or reboot.
 
-*Shahriyar, 9/27/2014
+*Shahriyar, 9/27/2014*
