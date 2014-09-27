@@ -131,5 +131,5 @@ inside this key. we can overcome this limitation by creating a random key in "Im
 and setting desired values inside ( e.g "debugger" ) and then renaming it with NtRenameKey to "APCcSvc.exe". 
 this wont let Podvish service starts again after termination or reboot.
 
-* PS : I found this one same time I found race condition flag, but just hold it until now ;) *
+*PS : I found this one same time I found race condition flaw, but just hold it up until now ;)*
 *Shahriyar, 9/27/2014*
