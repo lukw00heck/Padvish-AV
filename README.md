@@ -123,3 +123,13 @@ BELOW_NORMAL_PRIORITY_CLASS and TerminateProcess threads to normal or above norm
 
 *Shahriyar, 5/10/2014  
 twitter.com/ponez*
+
+##### 2 : NtRenameKey flaw
+There is another flaw in dealing with "Image File Execution Options" registry key. Padvish protects this key 
+and wont let us set any value inside a key named with it's process names ( its service's process name particularly ).
+so its possible to create a key like "Image File Execution Options\APCcSvc.exe", but its not possible to set any value 
+inside this key. we can overcome this limitation by creating a random key in "Image File Execution Options"
+and setting desired values inside ( e.g "debugger" ) and then renaming it with NtRenameKey to "APCcSvc.exe". 
+this wont let Podvish service starts again after termination or reboot.
+
+*Shahriyar, 9/27/2014
